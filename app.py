@@ -18,4 +18,4 @@ def home():
     return render_template("index.html", random_text=generate_random_text())
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8000)
+    app.run()
