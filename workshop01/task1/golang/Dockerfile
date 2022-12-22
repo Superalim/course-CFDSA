@@ -1,0 +1,26 @@
+FROM golang:1.19-alpine3.17 AS builder
+
+WORKDIR /app
+
+ADD go.mod .
+ADD go.sum .
+ADD main.go .
+
+RUN go build -o main main.go
+
+FROM alpine:3.17
+
+WORKDIR /app
+
+COPY --from=builder /app/main main
+COPY public public
+COPY templates templates
+
+ENV PORT=3000 INSTANCE_NAME=Hello INSTANCE_HASH=Olleh
+
+EXPOSE ${PORT}
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl http://localhost:${PORT}/healthz || exit 1
+
+ENTRYPOINT [ "/app/main" ]

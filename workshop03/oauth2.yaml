@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth-deploy
+  labels:
+    name: oauth-deploy
+    app: codeserver
+  namespace: csns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: oauth-po
+      app: codeserver
+  template:
+    metadata:
+      name: oauth-po
+      labels:
+        app: codeserver
+        name: oauth-po
+    spec:
+      containers:
+      - name: oauth-container
+        image: bitnami/oauth2-proxy:7.2.1
+        imagePullPolicy: IfNotPresent
+        args:
+        - --provider=github
+        - --email-domain=*
+        - --upstream=file:///dev/null
+        - --http-address=0.0.0.0:4180
+        ports:
+        - containerPort: 4180
+        envFrom:
+        - secretRef:
+            name: oauth-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth-svc
+  labels:
+    app: codeserver
+    name: oauth-svc
+  namespace: csns
+spec:
+  type: ClusterIP
+  selector:
+    name: oauth-po
+    app: codeserver
+  ports:
+  - port: 4180
+    targetPort: 4180
+---
+apiVersion: networking.k8s.io/v1 
+kind: Ingress 
+metadata: 
+  name: oauth-ing
+  labels:
+    name: oauth-ing
+    app: codeserver
+  namespace: csns
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: cs-146.190.193.110.nip.io
+    http:
+      paths:
+      - path: /oauth2
+        pathType: Prefix
+        backend: 
+          service:
+            name: oauth-svc
+            port: 
+              number: 4180
